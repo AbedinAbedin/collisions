@@ -1,12 +1,13 @@
         implicit none
 
-        integer i,j,k,indmin,p,i1,i2,invmod
+        integer i,j,k,l,indmin,p,i1,i2,invmod
         real*8, allocatable, dimension(:):: truan1,truan2
-        real*8 semi1,ecc1,incl1,aper1,lasc1,semi2,ecc2,incl2,aper2,lasc2
+        real*8 semi1,ecc1,incl1,aper1,lasc1,semi2,ecc2,incl2,aper2,
+     %   lasc2
         real*8, allocatable,dimension(:):: moid,x1,y1,z1,x2,y2,z2
         real*8 meanan1, meanan2,x,y,z
         real*8, allocatable, dimension(:) :: dist
-        real*8 pi,d2r,r2d,truan,m1,m2
+        real*8 pi,d2r,r2d,truan,m1,m2,m1min,m1max,m2min,m2max,dm1,dm2
         external invmod
 
         pi = 4.0*atan(1.d0)
@@ -27,21 +28,6 @@
         aper2 = 326.1612866d0*d2r
         meanan2 = 355.74d0*d2r
 
-c        call kep2cart(semi1,ecc1,incl1,aper1,lasc1,meanan1,
-c     %       x,y,z,truan1(1))
-c        x1(1) = x
-c        y1(1) = y
-c        z1(1) = z
-c        write(6,"(/,'X = ',1p,E18.10,/'Y = ',1p,E18.10,/,'Z = ',1p,
-c     %        E18.10)")x,y,z
-c        call kep2cart(semi2,ecc2,incl2,aper2,lasc2,meanan2,
-c     %       x,y,z,truan2(1))
-c        x2(1) = x
-c        y2(1) = y
-c        z2(1) = z
-c        write(6,"(/,'X = ',1p,E18.10,/'Y = ',1p,E18.10,/,'Z = ',1p,
-c     %        E18.10)")x,y,z
-
         allocate(truan1(10))
         allocate(truan2(10))
         allocate(x1(10))
@@ -52,26 +38,64 @@ c     %        E18.10)")x,y,z
         allocate(z2(10))
         allocate(dist(100))
 
-        k = 0
-        do i = 1, 10
-          m1 = meanan1 + (i-1)*2.*pi/10.
-          call kep2cart(semi1,ecc1,incl1,aper1,lasc1,m1,
+        m1min = meanan1
+        m1max = meanan1 + 2.*pi
+        dm1 = abs(m1max - m1min)/10.
+
+        m2min = meanan2
+        m2max = meanan2 + 2.*pi
+        dm2 = abs(m2max - m2min)/10.
+
+        do l = 1,7
+          if(m1min.gt.2*pi) m1min=mod(m1min,2*pi)
+          if(m1max.gt.2*pi) m1max=mod(m1max,2*pi)
+          if(m2min.gt.2*pi) m2min=mod(m2min,2*pi)
+          if(m2max.gt.2*pi) m2max=mod(m2max,2*pi)
+          if(m1min.lt.0.0) m1min=m1min+2*pi
+          if(m1max.lt.0.0) m1max=m1max+2*pi
+          if(m2min.lt.0.0) m2min=m2min+2*pi
+          if(m2max.lt.0.0) m2max=m2max+2*pi
+          k = 0
+          do i = 1, 10
+             m1 = m1min + dm1*(i-1)
+            call kep2cart(semi1,ecc1,incl1,aper1,lasc1,m1,
      %          x1(i),y1(i),z1(i),truan1(i))
-          do j = 1, 10
-            k = k + 1
-            m2 = meanan2 + (j-1)*2.*pi/10.
-            call kep2cart(semi2,ecc2,incl2,aper2,lasc2,m2,
-     %         x2(j),y2(j),z2(j),truan2(j))
-            dist(k) = sqrt((x1(i)-x2(j))**2 + (y1(i)-y2(j))**2 +
+            if (truan1(i).lt.0.0) truan1(i) = truan1(i) + 2*pi
+            do j = 1, 10
+              k = k + 1
+              m2 = m2min + (j-1)*dm2
+              call kep2cart(semi2,ecc2,incl2,aper2,lasc2,m2,
+     %           x2(j),y2(j),z2(j),truan2(j))
+              if (truan2(j).lt.0.0) truan2(j) = truan2(j) + 2*pi
+              dist(k) = sqrt((x1(i)-x2(j))**2 + (y1(i)-y2(j))**2 +
      %                  (z1(i)-z2(j))**2)
-c            print*,k,i,j,truan1(i)*r2d,truan2(j)*r2d,dist(k)
+c              print*,k,i,j,truan1(i)*r2d,truan2(j)*r2d,dist(k)
+            end do
           end do
+          call FindInVector(100,dist.eq.minval(dist),p)
+          i1 = invmod(p,10)
+          i2 = mod(p,10)
+          
+c          print*,m1min*r2d,m1max*r2d,dm1*r2d,m2min*r2d,m2max*r2d,dm2*r2d
+          call t2m(truan1(i1-1),ecc1,m1min)
+          call t2m(truan1(i1+1),ecc1,m1max)
+          call t2m(truan2(i2-1),ecc2,m2min)
+          call t2m(truan2(i2+1),ecc2,m2max)
+          if (m1min.gt.m1max) then
+            dm1=(2*pi-m1min+m1max)/10.
+          else
+            dm1=abs(m1max-m1min)/10.
+          end if
+          if (m2min.gt.m2max) then
+            dm2=(2*pi-m2min+m2max)/10.
+          else
+            dm2=abs(m2max-m2min)/10.
+          end if
+c          print*,i1,i2,truan1(i1)*r2d,truan2(i2)*r2d,minval(dist)
+          print*,truan1(i1-1)*r2d,truan1(i1+1)*r2d,truan2(i2-1)*r2d,
+     %           truan2(i2+1)*r2d,minval(dist),dm1,dm2
         end do
-        call FindInVector(100,dist.eq.minval(dist),p)
-c        print*,p,minval(dist),truan1(p)*r2d,truan2(p)*r2d
-        i1 = invmod(p,10)
-        i2 = mod(p,10)
-        print*,i1,i2
+
         end
 
         SUBROUTINE KEP2CART(semi,ecc,incl,aper,lasc,man,x,y,z,tanom)
@@ -118,6 +142,17 @@ c        print*,p,minval(dist),truan1(p)*r2d,truan2(p)*r2d
         tanom = 2.d0*atan(tan(eccan/2.0) * sqrt((1+ecc)/(1-ecc)))
 
         end
+
+        subroutine t2m(tanom,ecc,manom)
+
+        real*8 tanom,ecc,manom,ecanom
+
+        ecanom = 2.d0*atan(tan(tanom/2.0) * sqrt((1-ecc)/(1+ecc)))
+        manom = ecanom - ecc*sin(ecanom)
+
+        end
+
+
 
         function invmod(m,n)
         integer m,n

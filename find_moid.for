@@ -4,16 +4,16 @@
        REAL*8 semi1,ecc1,incl1,aper1,lasc1
        REAL*8 semi2,ecc2,incl2,aper2,lasc2,moid(16)
        REAL*8 p1(3),p2(3),q1(3),q2(3),s1(3),s2(3)
-       REAL*8 aa,bb,cc,mm,nn,kk,alpha1,alpha2,u1(16),u2(16),gg,u(0:16)
+       REAL aa,bb,cc,mm,nn,kk,alpha1,alpha2,u1(16),u2(16),gg,u(0:16)
        REAL*8 pi,dot,cons,derv,func,eps,x,y,dist,carg,dd
        REAL*8 csu,ssu,mnsc,kksc
-       COMPLEX*8 m1,m2,m3,m4,c8,eps2,roots(16),nroots(16)
-       COMPLEX*8 tt,ii,c_exp,c(-8:8),coeff(17),sumgg
+       COMPLEX m1,m2,m3,m4,c8,eps2,roots(16),nroots(16)
+       COMPLEX tt,ii,c_exp,c(-8:8),coeff(17),sumgg
        EXTERNAL dot,c_exp,derv,func,carg
        LOGICAL changed 
 	
        pi = 4.0*atan(1.d0)
-       ii = (0.d0,1.d0)
+       ii = (0,1)
 
        semi1 = 44.63
        ecc1  = 0.05
@@ -23,18 +23,11 @@
 
        semi2 = 5.2401
        ecc2  = 0.110
-       incl2 = 0.1
+       incl2 = 0.9
        aper2 = 10.0
        lasc2 = 10.0
 
         print*,'pi=',pi
-
-c       semi2 = 44.63
-c       ecc2  = 0.05
-c       incl2 = 2.45
-c       aper2 = 181.148
-c       lasc2 = 159.044
-
 
        incl1 = incl1 * pi / 180.
        aper1 = aper1 * pi / 180.
@@ -68,7 +61,7 @@ c       lasc2 = 159.044
        s2(1) = sqrt(1 - ecc2**2)*q2(1)
        s2(2) = sqrt(1 - ecc2**2)*q2(2)
        s2(3) = sqrt(1 - ecc2**2)*q2(3)
-       alpha2 = semi2/semi1
+       alpha2 = 1./alpha1
 
 ! Explicit formulas for C_8:
       m1=dot(p1,p2)-dot(s1,s2)-ecc1*ecc2-ii*(dot(s1,p2)+dot(p1,s2))
@@ -84,7 +77,7 @@ c       lasc2 = 159.044
          cons = 1./17.
          do j = 0, 16
             u(j) = 2.*pi*j*cons
-            aa = dot(p1,s2) * sin(u(j)) - dot(s1,s2) * cos(u(j))
+            aa = (dot(p1,s2) * sin(u(j))) - (dot(s1,s2) * cos(u(j)))
             bb = dot(p1,p2) * sin(u(j)) - dot(s1,p2) * cos(u(j))
             cc = (ecc2 * bb)- alpha1*ecc1*sin(u(j))
      %           * (1 - ecc1*cos(u(j)))
@@ -93,30 +86,37 @@ c       lasc2 = 159.044
             nn = dot(p1,s2) * ecc1 - dot(s1,s2)*sin(u(j))
      %           - dot(p1,s2)*cos(u(j))
             kk = alpha2 * (ecc2**2)
-c            gg = ((aa**2 - cc**2)*(bb**2 - cc**2)*kk**2)
-c     %           + 2.*kk*cc*(nn*aa*(aa**2-cc**2) + mm*bb*(bb**2-cc**2))
-c     %           - (aa**2 + bb**2)*((aa**2-cc**2)*nn**2+((bb**2-cc**2)
-c     %           * mm**2) - (2.*nn*mm*aa*bb))
-            gg = (kk*kk*cc**4)-(nn*nn*aa**4) - (mm*mm*bb**4)
-     %         + 2.*nn*kk*cc*aa*(aa*aa - cc*cc)
-     %         + 2.*nn*mm*bb*aa*(aa*aa + bb*bb)
-     %         + 2.*kk*mm*cc*bb*(bb*bb - cc*cc)
-     %         + (mm**2 + nn**2 - kk**2)
-     %         *(cc**2 * aa**2 - aa**2 * bb**2 + cc**2 * bb**2)
-            sumgg = sumgg + gg*c_exp(k*u(j))
+            gg = ((aa**2 - cc**2)*(bb**2 - cc**2)*kk**2)
+     %           + 2.*kk*cc*(nn*aa*(aa**2-cc**2) + mm*bb*(bb**2-cc**2))
+     %           - (aa**2 + bb**2)*((aa**2-cc**2)*nn**2+((bb**2-cc**2)
+     %           * mm**2) - (2.*nn*mm*aa*bb))
+            print*,'aa=',aa
+            print*,'bb=',bb
+            print*,'cc=',cc
+            print*,'mm=',mm
+            print*,'nn=',nn
+            print*,'kk=',kk
+c            gg = (kk*kk*cc**4)-(nn*nn*aa**4) - (mm*mm*bb**4)
+c     %         + 2.*nn*kk*cc*aa*(aa*aa - cc*cc)
+c     %         + 2.*nn*mm*bb*aa*(aa*aa + bb*bb)
+c     %         + 2.*kk*mm*cc*bb*(bb*bb - cc*cc)
+c     %         + (mm**2 + nn**2 - kk**2)
+c     %         *(cc**2 * aa**2 - aa**2 * bb**2 + cc**2 * bb**2)
+            print*,'gg=',gg
+            sumgg = sumgg + gg*cexp(ii*k*u(j))
          end do
          c(k) = sumgg*cons
          write(6,"(a2,i2,a2,'(',ES16.9E2,',',ES16.9E2,')')")'C_',k,'=',
      %         c(k)
        end do 
 
-        k = 1
+        k = 0
         do i = -8,8
-          coeff(k) = c(i)
           k = k + 1
+          coeff(k) = c(i)
         end do 
         write(6,"(/,15x,a13,15x,a21)")'EXPLICIT C_8:','DFT CALC. C_8:'
-        print*,c8,coeff(1)
+        print*,k,c8,coeff(17)
         print*,''
 
 c Given K complex coefficients C_k = Coeff, find the roots of the 
@@ -197,21 +197,20 @@ C======================================================================
 	FUNCTION dot(v1,v2)
         REAL*8 dot,v1(3),v2(3)
 
-
 	dot = v1(1)*v2(1) + v1(2)*v2(2) + v1(3)*v2(3)
 	return
 	END
 C======================================================================
 	FUNCTION carg(z)
 	REAL*8 CARG
-	COMPLEX*8 Z
+	COMPLEX Z
 
 	CARG = ATAN2(AIMAG(Z),REAL(Z))
 	RETURN
 	END
 C======================================================================
        FUNCTION c_exp(angle)
-	 COMPLEX*8 c_exp
+	 COMPLEX c_exp
        real*8 angle   ! The angle must be in radians.
 
        c_exp = cmplx(cos(angle),sin(angle))
@@ -221,11 +220,11 @@ C======================================================================
        SUBROUTINE laguer(a,m,x,its)
        INTEGER m,its,MAXIT,MR,MT
        REAL*8 EPSS
-       COMPLEX*8 a(m+1),x
+       COMPLEX a(m+1),x
        PARAMETER (EPSS=6.e-8,MR=8,MT=100,MAXIT=MT*MR)
        INTEGER iter,j
        REAL*8 abx,abp,abm,err,frac(MR)
-       COMPLEX*8 dx,x1,b,d,f,g,h,sq,gp,gm,g2
+       COMPLEX dx,x1,b,d,f,g,h,sq,gp,gm,g2
        SAVE frac
        DATA frac /.5,.25,.75,.13,.38,.62,.88,1./
        do 12 iter=1,MAXIT
@@ -276,13 +275,13 @@ C======================================================================
         SUBROUTINE zroots(a,m,roots,polish)  
         INTEGER m,MAXM  
         REAL*8 EPS  
-        COMPLEX*8 a(m+1),roots(m)  
+        COMPLEX a(m+1),roots(m)  
         LOGICAL polish  
         PARAMETER (EPS=6.e-8,MAXM=101)  
 CU    USES laguer
       	
         INTEGER i,j,jj,its  
-        COMPLEX*8 ad(MAXM),x,b,c  
+        COMPLEX ad(MAXM),x,b,c  
         do 11 j=1,m+1  
            ad(j)=a(j)  
   11    continue  
