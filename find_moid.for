@@ -4,7 +4,7 @@
        REAL*8 semi1,ecc1,incl1,aper1,lasc1
        REAL*8 semi2,ecc2,incl2,aper2,lasc2,moid(16)
        REAL*8 p1(3),p2(3),q1(3),q2(3),s1(3),s2(3)
-       REAL aa,bb,cc,mm,nn,kk,alpha1,alpha2,u1(16),u2(16),gg,u(0:16)
+       REAL aa,bb,cc,mm,nn,kk,alpha1,alpha2,u1(16),u2(16),gg,u(0:20)
        REAL*8 pi,dot,cons,derv,func,eps,x,y,dist,carg,dd
        REAL*8 csu,ssu,mnsc,kksc
        COMPLEX m1,m2,m3,m4,c8,eps2,roots(16),nroots(16)
@@ -74,8 +74,8 @@
       print*,'********* Printing calculated Coefficientc C_k:'
        do k = -8, 8
          sumgg = 0.0
-         cons = 1./17.
-         do j = 0, 16
+         cons = 1./21.
+         do j = 0, 20
             u(j) = 2.*pi*j*cons
             aa = (dot(p1,s2) * sin(u(j))) - (dot(s1,s2) * cos(u(j)))
             bb = dot(p1,p2) * sin(u(j)) - dot(s1,p2) * cos(u(j))
@@ -96,12 +96,6 @@
             print*,'mm=',mm
             print*,'nn=',nn
             print*,'kk=',kk
-c            gg = (kk*kk*cc**4)-(nn*nn*aa**4) - (mm*mm*bb**4)
-c     %         + 2.*nn*kk*cc*aa*(aa*aa - cc*cc)
-c     %         + 2.*nn*mm*bb*aa*(aa*aa + bb*bb)
-c     %         + 2.*kk*mm*cc*bb*(bb*bb - cc*cc)
-c     %         + (mm**2 + nn**2 - kk**2)
-c     %         *(cc**2 * aa**2 - aa**2 * bb**2 + cc**2 * bb**2)
             print*,'gg=',gg
             sumgg = sumgg + gg*cexp(ii*k*u(j))
          end do
